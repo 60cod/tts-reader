@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen py-8">
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-3xl font-bold text-gray-800 text-center mb-8">Text to Speech Reader</h1>
+            
+            <div id="textInputs" class="space-y-4 mb-6">
+                <!-- Initial text input will be added by JavaScript -->
+            </div>
+            
+            <div class="flex flex-wrap justify-center gap-3 mb-6">
+                <button id="addTextBtn" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Add Text Input
+                </button>
+                
+                <button id="playAllBtn" class="bg-green-100 hover:bg-green-200 text-green-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.5a2.5 2.5 0 110 5H9V10z"></path>
+                    </svg>
+                    Read All
+                </button>
+                
+                <button id="repeatAllBtn" class="bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Repeat All
+                </button>
+                
+                <button id="stopBtn" class="bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h6v4H9z"></path>
+                    </svg>
+                    Stop
+                </button>
+            </div>
+
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Voice Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="voiceSelect" class="block text-sm font-medium text-gray-600 mb-1">Voice</label>
+                        <select id="voiceSelect" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Loading voices...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="rateSlider" class="block text-sm font-medium text-gray-600 mb-1">Speed: <span id="rateValue">1.0</span></label>
+                        <input type="range" id="rateSlider" min="0.5" max="2" step="0.1" value="1" class="w-full accent-blue-500">
+                    </div>
+                    <div>
+                        <label for="pitchSlider" class="block text-sm font-medium text-gray-600 mb-1">Pitch: <span id="pitchValue">1.0</span></label>
+                        <input type="range" id="pitchSlider" min="0.5" max="2" step="0.1" value="1" class="w-full accent-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <div id="status" class="mt-4 text-center text-gray-600 hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        class TTSReader {
+            constructor() {
+                this.textInputCount = 0;
+                this.isRepeating = false;
+                this.currentUtterance = null;
+                this.voices = [];
+                this.selectedVoice = null;
+                
+                this.initializeElements();
+                this.loadVoices();
+                this.addTextInput(); // Add first text input
+            }
+
+            initializeElements() {
+                this.textInputsContainer = document.getElementById('textInputs');
+                this.addTextBtn = document.getElementById('addTextBtn');
+                this.playAllBtn = document.getElementById('playAllBtn');
+                this.repeatAllBtn = document.getElementById('repeatAllBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.voiceSelect = document.getElementById('voiceSelect');
+                this.rateSlider = document.getElementById('rateSlider');
+                this.pitchSlider = document.getElementById('pitchSlider');
+                this.rateValue = document.getElementById('rateValue');
+                this.pitchValue = document.getElementById('pitchValue');
+                this.status = document.getElementById('status');
+
+                // Event listeners
+                this.addTextBtn.addEventListener('click', () => this.addTextInput());
+                this.playAllBtn.addEventListener('click', () => this.readAllTexts());
+                this.repeatAllBtn.addEventListener('click', () => this.repeatAllTexts());
+                this.stopBtn.addEventListener('click', () => this.stopReading());
+                this.voiceSelect.addEventListener('change', (e) => this.selectVoice(e.target.value));
+                this.rateSlider.addEventListener('input', (e) => {
+                    this.rateValue.textContent = e.target.value;
+                });
+                this.pitchSlider.addEventListener('input', (e) => {
+                    this.pitchValue.textContent = e.target.value;
+                });
+
+                // Load voices when available
+                if (speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = () => this.loadVoices();
+                }
+            }
+
+            loadVoices() {
+                this.voices = speechSynthesis.getVoices();
+                this.populateVoiceSelect();
+                this.selectDefaultVoice();
+            }
+
+            populateVoiceSelect() {
+                this.voiceSelect.innerHTML = '';
+                this.voices.forEach((voice, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    this.voiceSelect.appendChild(option);
+                });
+            }
+
+            selectDefaultVoice() {
+                // Try to find US English voice
+                const usEnglishVoice = this.voices.find(voice => 
+                    voice.lang === 'en-US' || voice.lang.startsWith('en-US')
+                );
+                
+                if (usEnglishVoice) {
+                    const index = this.voices.indexOf(usEnglishVoice);
+                    this.voiceSelect.value = index;
+                    this.selectedVoice = usEnglishVoice;
+                } else if (this.voices.length > 0) {
+                    this.voiceSelect.value = 0;
+                    this.selectedVoice = this.voices[0];
+                }
+            }
+
+            selectVoice(index) {
+                if (index !== '' && this.voices[index]) {
+                    this.selectedVoice = this.voices[index];
+                }
+            }
+
+            addTextInput() {
+                this.textInputCount++;
+                const inputContainer = document.createElement('div');
+                inputContainer.className = 'flex gap-2 items-start';
+                inputContainer.id = `textContainer${this.textInputCount}`;
+
+                inputContainer.innerHTML = `
+                    <div class="flex-1">
+                        <textarea 
+                            id="textInput${this.textInputCount}" 
+                            placeholder="Enter text to read aloud..." 
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical min-h-[100px]"
+                        ></textarea>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <button 
+                            onclick="ttsReader.readText(${this.textInputCount})" 
+                            class="bg-green-100 hover:bg-green-200 text-green-700 font-medium py-2 px-3 rounded-lg transition-colors duration-200 flex items-center gap-1 text-sm"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M8.5 21V3l7 7-7 7z"></path>
+                            </svg>
+                            Read
+                        </button>
+                        <button 
+                            onclick="ttsReader.repeatText(${this.textInputCount})" 
+                            class="bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium py-2 px-3 rounded-lg transition-colors duration-200 flex items-center gap-1 text-sm"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Repeat
+                        </button>
+                        ${this.textInputCount > 1 ? `
+                            <button 
+                                onclick="ttsReader.removeTextInput(${this.textInputCount})" 
+                                class="bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-3 rounded-lg transition-colors duration-200 flex items-center gap-1 text-sm"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                Remove
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+
+                this.textInputsContainer.appendChild(inputContainer);
+            }
+
+            removeTextInput(id) {
+                const container = document.getElementById(`textContainer${id}`);
+                if (container) {
+                    container.remove();
+                }
+            }
+
+            readText(id) {
+                const textInput = document.getElementById(`textInput${id}`);
+                const text = textInput.value.trim();
+                
+                if (!text) {
+                    this.showStatus('Please enter some text to read', 'error');
+                    return;
+                }
+
+                this.speak(text);
+            }
+
+            repeatText(id) {
+                const textInput = document.getElementById(`textInput${id}`);
+                const text = textInput.value.trim();
+                
+                if (!text) {
+                    this.showStatus('Please enter some text to read', 'error');
+                    return;
+                }
+
+                this.isRepeating = true;
+                this.speak(text, true);
+            }
+
+            readAllTexts() {
+                const allTexts = this.getAllTexts();
+                if (allTexts.length === 0) {
+                    this.showStatus('Please enter some text to read', 'error');
+                    return;
+                }
+
+                const combinedText = allTexts.join('. ');
+                this.speak(combinedText);
+            }
+
+            repeatAllTexts() {
+                const allTexts = this.getAllTexts();
+                if (allTexts.length === 0) {
+                    this.showStatus('Please enter some text to read', 'error');
+                    return;
+                }
+
+                const combinedText = allTexts.join('. ');
+                this.isRepeating = true;
+                this.speak(combinedText, true);
+            }
+
+            getAllTexts() {
+                const texts = [];
+                for (let i = 1; i <= this.textInputCount; i++) {
+                    const textInput = document.getElementById(`textInput${i}`);
+                    if (textInput && textInput.value.trim()) {
+                        texts.push(textInput.value.trim());
+                    }
+                }
+                return texts;
+            }
+
+            speak(text, repeat = false) {
+                // Stop any current speech
+                speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // Set voice settings
+                if (this.selectedVoice) {
+                    utterance.voice = this.selectedVoice;
+                }
+                utterance.rate = parseFloat(this.rateSlider.value);
+                utterance.pitch = parseFloat(this.pitchSlider.value);
+
+                // Event handlers
+                utterance.onstart = () => {
+                    this.showStatus('Speaking...', 'info');
+                    this.currentUtterance = utterance;
+                };
+
+                utterance.onend = () => {
+                    this.showStatus('Finished speaking', 'success');
+                    this.currentUtterance = null;
+                    
+                    if (repeat && this.isRepeating) {
+                        setTimeout(() => {
+                            if (this.isRepeating) {
+                                this.speak(text, true);
+                            }
+                        }, 500);
+                    } else {
+                        this.isRepeating = false;
+                    }
+                };
+
+                utterance.onerror = (event) => {
+                    this.showStatus(`Error: ${event.error}`, 'error');
+                    this.currentUtterance = null;
+                    this.isRepeating = false;
+                };
+
+                speechSynthesis.speak(utterance);
+            }
+
+            stopReading() {
+                this.isRepeating = false;
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+                this.showStatus('Stopped', 'info');
+            }
+
+            showStatus(message, type = 'info') {
+                this.status.className = `mt-4 text-center ${type === 'error' ? 'text-red-600' : type === 'success' ? 'text-green-600' : 'text-blue-600'}`;
+                this.status.textContent = message;
+                this.status.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    this.status.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        // Initialize the TTS Reader when page loads
+        let ttsReader;
+        window.addEventListener('DOMContentLoaded', () => {
+            ttsReader = new TTSReader();
+        });
+
+        // Check for speech synthesis support
+        if (!('speechSynthesis' in window)) {
+            alert('Your browser does not support text-to-speech functionality.');
+        }
+    </script>
+</body>
+</html>
