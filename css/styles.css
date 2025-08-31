@@ -1,0 +1,123 @@
+/* Custom styles for TTS Reader */
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.text-input-container {
+    transition: all 0.3s ease;
+}
+
+.text-input-container:hover {
+    transform: translateY(-1px);
+}
+
+.button-primary {
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.button-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.button-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-message {
+    animation: fadeInOut 0.3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Custom scrollbar for textareas */
+textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+textarea::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+textarea::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Focus styles */
+.focus-ring:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #3b82f6;
+    ring-offset: 2px;
+}
+
+/* Button variants */
+.btn-blue {
+    @apply bg-blue-100 hover:bg-blue-200 text-blue-700;
+}
+
+.btn-green {
+    @apply bg-green-100 hover:bg-green-200 text-green-700;
+}
+
+.btn-purple {
+    @apply bg-purple-100 hover:bg-purple-200 text-purple-700;
+}
+
+.btn-red {
+    @apply bg-red-100 hover:bg-red-200 text-red-700;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .button-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .control-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .voice-settings {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Loading animation */
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Text input highlighting when active */
+.text-input-active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
