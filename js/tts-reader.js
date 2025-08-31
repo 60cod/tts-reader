@@ -76,7 +76,20 @@ class TTSReader {
      * Select default US English voice
      */
     selectDefaultVoice() {
-        // Try to find US English voice
+        // Try to find Google US English voice first
+        const googleUsEnglishVoice = this.voices.find(voice => 
+            voice.name.toLowerCase().includes('google') && 
+            (voice.lang === 'en-US' || voice.lang.startsWith('en-US'))
+        );
+        
+        if (googleUsEnglishVoice) {
+            const index = this.voices.indexOf(googleUsEnglishVoice);
+            this.voiceSelect.value = index;
+            this.selectedVoice = googleUsEnglishVoice;
+            return;
+        }
+        
+        // Fallback to any US English voice
         const usEnglishVoice = this.voices.find(voice => 
             voice.lang === 'en-US' || voice.lang.startsWith('en-US')
         );
